@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getMonthGrid, getISOWeek, isSameDay, addMonths } from '@/utils/date';
+import { getMonthGrid, buildDateCell, getISOWeek, isSameDay, addMonths } from '@/utils/date';
 
 describe('getMonthGrid', () => {
   it('returns 42 cells (6 rows × 7 cols)', () => {
@@ -37,6 +37,60 @@ describe('getMonthGrid', () => {
     // 2026-01-01 是周四，所以前面应有 3 天（2025-12-29 周一、30 周二、31 周三）
     expect(cells[0].date.getFullYear()).toBe(2025);
     expect(cells[0].date.getMonth()).toBe(11); // 12 月（0-indexed）
+  });
+
+  it('marks the selected date when it lies inside the grid (regression)', () => {
+    const cells = getMonthGrid(2026, 10, new Date('2026-09-06'), undefined, undefined, new Date('2026-10-15'));
+    const sel = cells.filter((c) => c.isSelected);
+    expect(sel).toHaveLength(1);
+    expect(sel[0].date.getDate()).toBe(15);
+  });
+
+  it('leaves no cell selected when the selected date is outside the grid window (regression)', () => {
+    // 选中日 2026-09-06 落在 2026-10 网格窗口（约 09-28 ~ 11-08）之外
+    const cells = getMonthGrid(2026, 10, new Date('2026-09-06'), undefined, undefined, new Date('2026-09-06'));
+    expect(cells.some((c) => c.isSelected)).toBe(false);
+  });
+});
+
+describe('buildDateCell', () => {
+  const lunarStub = () => ({
+    dayText: '初一',
+    monthText: '正月',
+    yearGanZhi: '甲辰',
+    monthGanZhi: '丙寅',
+    dayGanZhi: '甲子',
+    zodiac: '龙',
+    isLeapMonth: false,
+    jieQi: null,
+    festival: null
+  });
+  const holidayStub = () => ({ name: '春节', type: 'legal', isOffDay: true } as const);
+
+  it('builds a full cell for a selected date outside the viewed month', () => {
+    const selected = new Date(2026, 8, 6);
+    const today = new Date(2026, 8, 6);
+    const cell = buildDateCell(selected, today, selected, lunarStub, holidayStub);
+    expect(cell.date).toEqual(selected);
+    expect(cell.isSelected).toBe(true);
+    expect(cell.isToday).toBe(true);
+    expect(cell.inCurrentMonth).toBe(true);
+    // 农历/节假日由 provider 正常填充
+    expect(cell.lunar.dayText).toBe('初一');
+    expect(cell.holiday?.name).toBe('春节');
+  });
+
+  it('keeps isToday/isSelected false for an unrelated date, using default providers', () => {
+    const cell = buildDateCell(new Date(2026, 9, 15), new Date(2026, 8, 6));
+    expect(cell.isSelected).toBe(false);
+    expect(cell.isToday).toBe(false);
+    expect(cell.holiday).toBeNull();
+    expect(cell.lunar.dayText).toBe('');
+  });
+
+  it('honours the inCurrentMonth flag passed by callers', () => {
+    const cell = buildDateCell(new Date(2026, 9, 15), new Date(2026, 8, 6), undefined, undefined, undefined, false);
+    expect(cell.inCurrentMonth).toBe(false);
   });
 });
 

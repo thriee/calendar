@@ -3,6 +3,10 @@ import { computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useCalendarStore } from '@/stores/calendar';
 import { useCalendar } from '@/composables/useCalendar';
+import { buildDateCell, isSameDay } from '@/utils/date';
+import { parseYMD } from '@/utils/format';
+import { toLunarInfo } from '@/composables/useLunar';
+import { getHoliday } from '@/composables/useHolidays';
 import CalendarHeader from '@/components/CalendarHeader.vue';
 import MonthGrid from '@/components/MonthGrid.vue';
 import DayView from './DayView.vue';
@@ -34,23 +38,38 @@ watch(
   }
 );
 
-// 初始化：URL 优先
+// 初始化：URL 优先。y/m 为「查看月份」，d 为「选中日」（完整 YYYY-MM-DD）。
+// 选中日与查看月份相互独立：即使 d 不在 y/m 的网格内，也会被完整还原，
+// 刷新后与离开时的选中 + 视图保持一致。
 onMounted(() => {
   const y = Number(route.query.y);
   const m = Number(route.query.m);
-  const d = Number(String(route.query.d ?? '').split('-')[2]);
-  if (y && m) {
-    store.setView(y, m);
-    if (d) store.setSelected(new Date(y, m - 1, d));
-  }
+  const d = parseYMD(String(route.query.d ?? ''));
+  if (y && m) store.setView(y, m);
+  if (d) store.setSelected(d);
 });
 
+// 今日按钮：仅当「正在查看今天所在月份，且当前选中日就是今天」时才禁用。
+// 选中了当月其他日期、或翻到其他月份时按钮保持可用，点击会经 store.gotoToday
+// 把 选中日/视图 一起重置回今天。
 const isToday = computed(() => {
   const t = store.today;
-  return t.getFullYear() === year.value && t.getMonth() + 1 === month.value;
+  return (
+    t.getFullYear() === year.value &&
+    t.getMonth() + 1 === month.value &&
+    isSameDay(t, store.selected)
+  );
 });
 
-const selectedCell = computed(() => cells.value.find((c) => c.isSelected) ?? cells.value.find((c) => c.isToday) ?? null);
+// 详情面板始终跟随「选中日」：
+// 优先取当前网格里的真实单元格（保留其 isToday/isSelected/inCurrentMonth 标志）；
+// 若选中日不在当前查看月份的网格内（如纯翻月后），则用纯构建器合成一个完整 DateCell，
+// 保证农历/节假日等详情数据不随网格丢失，面板永不置空。
+const selectedCell = computed(() => {
+  const hit = cells.value.find((c) => c.isSelected);
+  if (hit) return hit;
+  return buildDateCell(store.selected, store.today, store.selected, toLunarInfo, getHoliday);
+});
 
 function onSelect(d: Date) {
   store.setSelected(d);
