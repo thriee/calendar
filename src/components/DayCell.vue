@@ -65,30 +65,44 @@ function onClick() {
     color: var(--color-primary);
   }
 
-  &--today .day-cell__num {
-    color: var(--color-today);
-    font-weight: 600;
-  }
-
-  &--today::after {
-    content: '';
-    position: absolute;
-    bottom: 2px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: var(--color-today);
-  }
-
+  // 选中态：边框 + 数字变色（不再整块填充，避免盖掉「今日」底色）
   &--selected {
-    background: var(--color-primary);
-    color: #fff;
+    border-color: var(--color-primary);
 
-    .day-cell__num { color: #fff; }
-    .lunar-text { color: rgba(255, 255, 255, 0.85); }
-    .lunar-text--festive { color: #fff; }
+    .day-cell__num {
+      color: var(--color-primary);
+      font-weight: 600;
+    }
+  }
+
+  // 今日：常驻主色红实底（选中其他日期也不消失），文字反白
+  &--today {
+    background: var(--color-primary);
+
+    .day-cell__num {
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .lunar-text {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .lunar-text--festive {
+      color: #fff;
+    }
+
+    // 节假日徽标在白字下统一为半透明白
+    .chip {
+      background: rgba(255, 255, 255, 0.25);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.65);
+    }
+  }
+
+  &--today:hover {
+    background: var(--color-primary);
+    filter: brightness(1.07);
   }
 
   &__num {

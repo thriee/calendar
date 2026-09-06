@@ -83,6 +83,12 @@ function onSwipe(direction: 'left' | 'right') {
   else prev();
 }
 
+// 年月面板跳转：只改「查看」的年月，与 ‹/› 翻月保持一致，
+// 不改变选中日（今日/详情面板仍跟随选中日）。
+function onJump(y: number, m: number) {
+  goto(y, m);
+}
+
 function onPickHoliday(name: string) {
   // 简化版：跳到当前查看年中该节日通常所在的月份。
   // 注意：春节/端午/中秋为农历节日，其公历日期逐年浮动，这里只按月近似跳转且不选定日期，
@@ -110,6 +116,7 @@ function onPickHoliday(name: string) {
       @prev="prev"
       @next="next"
       @today="store.gotoToday"
+      @jump="onJump"
       @pick-holiday="onPickHoliday"
     />
     <MonthGrid :cells="cells" @select="onSelect" @swipe="onSwipe" />

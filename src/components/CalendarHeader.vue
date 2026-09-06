@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import ThemeToggle from './ThemeToggle.vue';
+import YearMonthPicker from './YearMonthPicker.vue';
 
 const props = defineProps<{
   year: number;
@@ -12,10 +13,52 @@ const emit = defineEmits<{
   (e: 'prev'): void;
   (e: 'next'): void;
   (e: 'today'): void;
+  (e: 'jump', year: number, month: number): void;
   (e: 'pick-holiday', name: string): void;
 }>();
 
 const yearLabel = computed(() => `${props.year}年${props.month}月`);
+
+// —— 年月快速选择面板 ——
+const pickerOpen = ref(false);
+const pickerWrap = ref<HTMLElement | null>(null);
+const labelBtn = ref<HTMLButtonElement | null>(null);
+
+function togglePicker() {
+  pickerOpen.value = !pickerOpen.value;
+}
+
+function closePicker(returnFocus = true) {
+  pickerOpen.value = false;
+  if (returnFocus) labelBtn.value?.focus();
+}
+
+// 点击面板/触发按钮以外区域、或按 Esc 时关闭
+function onDocPointer(e: PointerEvent) {
+  if (!pickerOpen.value) return;
+  if (pickerWrap.value && !pickerWrap.value.contains(e.target as Node)) {
+    closePicker(false);
+  }
+}
+
+function onDocKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') closePicker();
+}
+
+onMounted(() => {
+  document.addEventListener('pointerdown', onDocPointer);
+  document.addEventListener('keydown', onDocKeydown);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', onDocPointer);
+  document.removeEventListener('keydown', onDocKeydown);
+});
+
+function onPickYearMonth(y: number, m: number) {
+  closePicker();
+  emit('jump', y, m);
+}
 
 const holidayShortcuts = [
   { name: '元旦', month: 1, day: 1 },
@@ -36,7 +79,25 @@ const holidayShortcuts = [
     </div>
     <div class="cal-header__nav">
       <button class="cal-header__arrow" type="button" aria-label="上个月" @click="emit('prev')">‹</button>
-      <div class="cal-header__label tnum">{{ yearLabel }}</div>
+      <div ref="pickerWrap" class="cal-header__labelwrap">
+        <button
+          ref="labelBtn"
+          class="cal-header__label tnum"
+          type="button"
+          :aria-expanded="pickerOpen"
+          aria-haspopup="dialog"
+          @click="togglePicker"
+        >
+          {{ yearLabel }}
+          <span class="cal-header__caret" aria-hidden="true">▾</span>
+        </button>
+        <YearMonthPicker
+          v-if="pickerOpen"
+          :year="year"
+          :month="month"
+          @select="onPickYearMonth"
+        />
+      </div>
       <button class="cal-header__arrow" type="button" aria-label="下个月" @click="emit('next')">›</button>
       <button
         class="cal-header__today"
@@ -103,11 +164,37 @@ const holidayShortcuts = [
     &:hover { background: var(--color-surface-hover); }
   }
 
-  &__label {
+  &__labelwrap {
+    position: relative;
     flex: 1;
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 0;
+  }
+
+  &__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
     font-size: 1.125rem;
     font-weight: 600;
+    font-family: inherit;
+    color: var(--color-text);
+    cursor: pointer;
+
+    &:hover { background: var(--color-surface-hover); }
+  }
+
+  &__caret {
+    font-size: 0.6em;
+    line-height: 1;
+    margin-top: 2px;
+    color: var(--color-text-sub);
   }
 
   &__today {
