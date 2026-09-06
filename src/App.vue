@@ -1,12 +1,19 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { onMounted } from 'vue';
+import { useTheme } from '@/composables/useTheme';
+
+const { initTheme } = useTheme();
+onMounted(() => initTheme());
+</script>
 
 <template>
-  <div class="app">
-    <h1>万年历</h1>
-    <p>脚手架已就绪</p>
+  <div class="app-root">
+    <router-view />
   </div>
 </template>
 
-<style scoped>
-.app { padding: 1rem; font-family: system-ui, sans-serif; }
+<style lang="scss">
+@use '@/styles/reset';
+@use '@/styles/tokens';
+@use '@/styles/typography';
 </style>
