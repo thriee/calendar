@@ -10,6 +10,8 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
+  /* 禁止双击缩放（双击/快速点击不触发页面缩放），同时保留滚动 */
+  touch-action: manipulation;
 }
 
 button {

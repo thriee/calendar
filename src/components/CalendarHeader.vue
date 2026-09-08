@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import ThemeToggle from './ThemeToggle.vue';
+import BeijingClock from './BeijingClock.vue';
 import YearMonthPicker from './YearMonthPicker.vue';
 
 const props = defineProps<{
@@ -74,7 +75,10 @@ const holidayShortcuts = [
 <template>
   <header class="cal-header">
     <div class="cal-header__top">
-      <h1 class="cal-header__title">万年历</h1>
+      <div class="cal-header__brand">
+        <h1 class="cal-header__title">万年历</h1>
+        <BeijingClock />
+      </div>
       <ThemeToggle />
     </div>
     <div class="cal-header__nav">
@@ -135,7 +139,15 @@ const holidayShortcuts = [
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: var(--space-2);
     margin-bottom: var(--space-2);
+  }
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
   }
 
   &__title {
